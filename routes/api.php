@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\DokumenController;
 use App\Http\Controllers\Api\LayananController;
 use App\Http\Controllers\Api\NotifikasiController;
 use App\Http\Controllers\Api\PengajuanController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,7 +25,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'me']);
 
-    // Layanan (Services)
+    // Profile Management (Can be accessed even if profile is not complete)
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile/complete', [ProfileController::class, 'complete']);
+
+    // Core Features - Must have complete profile
+    Route::middleware('profile.complete')->group(function () {
+        // Layanan (Services)
     Route::get('/layanan', [LayananController::class, 'index']);
     Route::get('/layanan/{id}', [LayananController::class, 'show']);
 
@@ -49,6 +57,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifikasi/read-all', [NotifikasiController::class, 'readAll']);
 
     // Dashboard Stats
-    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
-    Route::get('/dashboard/chart', [DashboardController::class, 'chart']);
+        Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+        Route::get('/dashboard/chart', [DashboardController::class, 'chart']);
+
+        // Admin User Management
+        Route::get('/admin/users', [UserManagementController::class, 'index']);
+        Route::post('/admin/users', [UserManagementController::class, 'store']);
+        Route::put('/admin/users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
+        Route::put('/admin/users/{user}/toggle-active', [UserManagementController::class, 'toggleActive']);
+    });
 });

@@ -29,6 +29,13 @@ class AuthController extends Controller
             ]);
         }
 
+        // Check if account is active
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Akun Anda telah dinonaktifkan oleh Admin. Silakan hubungi UPT Disdukcapil.'],
+            ]);
+        }
+
         // Create Sanctum Token
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -44,6 +51,8 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'desa' => $user->desa,
                     'phone' => $user->phone,
+                    'is_profile_complete' => (bool)$user->is_profile_complete,
+                    'is_active' => (bool)$user->is_active,
                 ]
             ]
         ]);
@@ -78,6 +87,10 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'desa' => $user->desa,
                 'phone' => $user->phone,
+                'nik' => $user->nik,
+                'alamat' => $user->alamat,
+                'is_profile_complete' => (bool)$user->is_profile_complete,
+                'is_active' => (bool)$user->is_active,
             ]
         ]);
     }

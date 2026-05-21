@@ -20,6 +20,11 @@ return new class extends Migration
             $table->enum('role', ['petugas_desa', 'admin'])->default('petugas_desa');
             $table->string('desa')->nullable();
             $table->string('phone')->nullable();
+            $table->string('nik', 16)->nullable();
+            $table->text('alamat')->nullable();
+            $table->boolean('is_profile_complete')->default(false);
+            $table->boolean('is_active')->default(true);
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->rememberToken();
             $table->timestamps();
         });

@@ -1,8 +1,8 @@
 # PRD — Sistem Layanan Administrasi Kependudukan Digital
 ## UPT Disdukcapil Bengkalis
 
-**Versi**: 1.1  
-**Tanggal**: 18 Mei 2026  
+**Versi**: 1.2  
+**Tanggal**: 21 Mei 2026  
 **Status**: Draft
 
 ---
@@ -58,6 +58,8 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 **Kemampuan Admin**:
 - Login dengan email + password
+- **Membuat akun Petugas Desa baru** (nama, email, password, desa)
+- **Mengelola akun Petugas Desa** (reset password, aktifkan/nonaktifkan)
 - Melihat semua pengajuan dari semua desa
 - Preview file yang diupload
 - Verifikasi berkas → status "diverifikasi"
@@ -76,8 +78,49 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 - **Metode**: Email + Password
 - **Guard**: Laravel Sanctum (SPA token-based)
 - **Session**: Token disimpan di httpOnly cookie
+- **Validasi tambahan saat login**:
+  - Cek `is_active == true` → jika `false`, tolak login dengan pesan "Akun Anda telah dinonaktifkan"
+  - Setelah login sukses, response menyertakan flag `is_profile_complete`
 
-### 5.2 Row Level Security (RLS)
+### 5.2 Registrasi & Manajemen Akun
+
+> [!IMPORTANT]
+> Petugas Desa **TIDAK** dapat mendaftar sendiri. Pembuatan akun hanya dapat dilakukan oleh Admin UPT Disdukcapil.
+
+**Alasan**: Hanya petugas resmi yang ditunjuk oleh desa yang boleh mengakses sistem kependudukan. Registrasi publik berisiko membuka akses kepada pihak tidak berwenang.
+
+**Alur Pembuatan Akun**:
+1. Admin login ke sistem
+2. Admin membuka menu "Kelola Akun Petugas"
+3. Admin mengisi form pembuatan akun minimal:
+   - Nama Lengkap *(wajib)*
+   - Email *(wajib, unik)*
+   - Password *(wajib, min 8 karakter)*
+   - Desa *(wajib)*
+4. Sistem membuat akun dengan `is_profile_complete = false`
+5. Admin menyerahkan kredensial (email + password) ke petugas secara offline
+
+### 5.3 Kelengkapan Profil (First-Login Flow)
+
+> [!IMPORTANT]
+> Petugas Desa yang baru dibuatkan akun oleh Admin **WAJIB** melengkapi profil pribadi saat login pertama kali. Sebelum profil dilengkapi, petugas **tidak dapat mengakses** fitur pengajuan maupun dashboard.
+
+**Data yang harus dilengkapi oleh Petugas**:
+
+| Field | Validasi |
+|-------|----------|
+| Nama Lengkap | Pre-filled dari data Admin, bisa diubah |
+| NIK | Wajib, 16 digit angka |
+| Nomor HP/WA | Wajib, format nomor telepon Indonesia |
+| Alamat Lengkap | Wajib, min 10 karakter |
+| Ganti Password | Opsional (disarankan untuk keamanan) |
+
+**Setelah profil dilengkapi**:
+- `is_profile_complete` diubah menjadi `true`
+- Petugas di-redirect ke `/dashboard`
+- Login selanjutnya langsung masuk dashboard tanpa halaman profil lagi
+
+### 5.4 Row Level Security (RLS)
 > [!IMPORTANT]
 > RLS wajib diaktifkan untuk **semua tabel** yang menyimpan data pengajuan.
 
@@ -89,6 +132,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 **Implementasi di Laravel**:
 - Global Scope pada Model (auto-filter by `user_id` untuk petugas desa)
 - Middleware role-checking pada setiap route group
+- Middleware `EnsureProfileComplete` pada route yang membutuhkan profil lengkap
 - Policy class untuk authorization granular
 
 ---
@@ -134,6 +178,8 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Password | Required, min 8 karakter |
 
 - Redirect setelah login berdasarkan role
+- Jika `is_profile_complete == false` → redirect ke `/profile/complete`
+- Jika `is_active == false` → tampilkan error "Akun dinonaktifkan"
 - Error message jika kredensial salah
 
 ---
@@ -204,7 +250,30 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 ---
 
-### 7.4 Dashboard Admin
+### 7.4 Halaman Lengkapi Profil (First-Login)
+
+**Route**: `/profile/complete`
+
+> [!NOTE]
+> Halaman ini hanya muncul saat Petugas Desa login pertama kali (ketika `is_profile_complete == false`). Setelah profil dilengkapi, halaman ini tidak akan muncul lagi.
+
+| Field | Validasi | Keterangan |
+|-------|----------|------------|
+| Nama Lengkap | Required | Pre-filled dari data yang diisi Admin |
+| NIK | Required, 16 digit angka | Nomor Induk Kependudukan pribadi petugas |
+| Nomor HP/WA | Required, format HP | Nomor HP/WhatsApp aktif petugas |
+| Alamat Lengkap | Required, min 10 char | Alamat domisili petugas |
+| Password Baru | Optional, min 8 char | Disarankan mengganti password default dari Admin |
+| Konfirmasi Password | Required if password diisi | Harus sama dengan password baru |
+
+**Setelah submit**:
+- Data profil disimpan → `is_profile_complete = true`
+- Redirect ke `/dashboard`
+- Notifikasi dikirim ke Admin bahwa petugas telah melengkapi profil
+
+---
+
+### 7.5 Dashboard Admin
 
 **Route**: `/admin/dashboard`
 
@@ -215,9 +284,10 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 1. Dashboard
 2. Verifikasi Berkas
 3. Semua Pengajuan
-4. Notifikasi
+4. Kelola Akun Petugas
+5. Notifikasi
 
-#### 7.4.1 Dashboard Admin
+#### 7.5.1 Dashboard Admin
 
 | Widget | Deskripsi |
 |--------|-----------|
@@ -229,7 +299,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Chart | Grafik pengajuan per bulan |
 | Tabel Terbaru | 10 pengajuan terakhir |
 
-#### 7.4.2 Verifikasi Berkas
+#### 7.5.2 Verifikasi Berkas
 
 **Tabel Pengajuan Masuk** (status = "menunggu"):
 
@@ -249,7 +319,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Verifikasi | Status → "diverifikasi" + kirim email ke petugas |
 | Kembalikan | Status → "dikembalikan" + isi catatan alasan + kirim email |
 
-#### 7.4.3 Semua Pengajuan
+#### 7.5.3 Semua Pengajuan
 
 **Tabel semua pengajuan** dengan filter:
 
@@ -268,6 +338,45 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Ubah Status | Dropdown: "diproses" / "selesai" |
 | Upload Hasil | Upload file dokumen jadi (PDF) |
 | Kirim Notifikasi | Email otomatis saat status berubah |
+
+#### 7.5.4 Kelola Akun Petugas
+
+**Tabel Daftar Akun Petugas Desa**:
+
+| Kolom | Deskripsi |
+|-------|-----------|
+| Nama | Nama lengkap petugas |
+| Email | Email login |
+| Desa | Nama desa |
+| Status Profil | Badge "Lengkap" / "Belum Lengkap" |
+| Status Akun | Badge "Aktif" / "Nonaktif" |
+| Tanggal Dibuat | Timestamp pembuatan akun |
+| Aksi | Reset Password / Nonaktifkan / Aktifkan |
+
+**Filter**:
+
+| Filter | Opsi |
+|--------|------|
+| Desa | Dropdown daftar desa |
+| Status Profil | Semua / Lengkap / Belum Lengkap |
+| Status Akun | Semua / Aktif / Nonaktif |
+
+**Aksi Tambah Akun** (Modal Form):
+
+| Field | Validasi |
+|-------|----------|
+| Nama Lengkap | Required |
+| Email | Required, format email, unique |
+| Password | Required, min 8 karakter |
+| Desa | Required |
+
+**Aksi Pada Akun Existing**:
+
+| Aksi | Detail |
+|------|--------|
+| Reset Password | Generate password baru + tampilkan ke Admin untuk dicatat |
+| Nonaktifkan | Set `is_active = false`, petugas tidak bisa login lagi |
+| Aktifkan | Set `is_active = true`, petugas bisa login kembali |
 
 ---
 
@@ -337,10 +446,16 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | role | ENUM | `petugas_desa`, `admin` |
 | desa | VARCHAR(255) NULL | Nama desa (untuk petugas) |
 | phone | VARCHAR(20) NULL | Nomor telepon |
+| nik | VARCHAR(16) NULL | NIK petugas (16 digit) |
+| alamat | TEXT NULL | Alamat lengkap petugas |
+| is_profile_complete | BOOLEAN DEFAULT false | Profil sudah dilengkapi? |
+| is_active | BOOLEAN DEFAULT true | Akun aktif? |
+| created_by | BIGINT FK → users.id NULL | Admin yang membuat akun |
 | created_at | TIMESTAMP | |
 | updated_at | TIMESTAMP | |
 
 > **Catatan**: Terdapat 2 akun dengan role `admin`, keduanya memiliki hak akses identik.
+> Akun Petugas Desa dibuat oleh Admin dengan `is_profile_complete = false`. Petugas wajib melengkapi profil (NIK, phone, alamat) saat login pertama.
 
 ### 9.2 Tabel `layanan`
 
@@ -428,7 +543,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
-| POST | `/api/login` | Login user |
+| POST | `/api/login` | Login user (cek `is_active`, return `is_profile_complete`) |
 | POST | `/api/logout` | Logout user |
 | GET | `/api/user` | Get current user |
 
@@ -476,6 +591,22 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | GET | `/api/dashboard/stats` | Statistik dashboard (RLS) | All authenticated |
 | GET | `/api/dashboard/chart` | Data chart pengajuan per bulan | Admin |
 
+### 10.7 Manajemen Akun Petugas (Admin Only)
+
+| Method | Endpoint | Deskripsi | Akses |
+|--------|----------|-----------|-------|
+| GET | `/api/admin/users` | List semua akun petugas desa | Admin |
+| POST | `/api/admin/users` | Buat akun petugas baru | Admin |
+| PUT | `/api/admin/users/{id}/reset-password` | Reset password petugas | Admin |
+| PUT | `/api/admin/users/{id}/toggle-active` | Aktifkan/nonaktifkan akun | Admin |
+
+### 10.8 Profil User
+
+| Method | Endpoint | Deskripsi | Akses |
+|--------|----------|-----------|-------|
+| GET | `/api/profile` | Get profil lengkap user saat ini | All authenticated |
+| PUT | `/api/profile/complete` | Lengkapi profil pertama kali (NIK, phone, alamat) | Petugas Desa |
+
 ---
 
 ## 11. Notifikasi Email
@@ -484,6 +615,9 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 | Event | Penerima | Subject |
 |-------|----------|---------|
+| Akun baru dibuat oleh Admin | Petugas Desa | "Akun SILADUK Anda Telah Dibuat" |
+| Profil berhasil dilengkapi | Admin | "Petugas {nama} dari Desa {desa} Telah Melengkapi Profil" |
+| Akun dinonaktifkan | Petugas Desa | "Akun SILADUK Anda Dinonaktifkan" |
 | Pengajuan baru dibuat | Admin | "Pengajuan Baru: {jenis_layanan} - {nomor}" |
 | Status → Diverifikasi | Petugas Desa | "Berkas Diverifikasi: {nomor}" |
 | Status → Dikembalikan | Petugas Desa | "Berkas Dikembalikan: {nomor}" |
@@ -606,6 +740,7 @@ Setiap layanan memiliki template PDF formulir yang di-generate client-side mengg
 ```
 /                           → Landing Page (Public)
 /login                      → Halaman Login
+/profile/complete           → Lengkapi Profil (First-Login, Petugas Desa)
 
 /dashboard                  → Dashboard Petugas Desa
 /ajukan-layanan             → Pilih Layanan (Step 1)
@@ -619,6 +754,7 @@ Setiap layanan memiliki template PDF formulir yang di-generate client-side mengg
 /admin/verifikasi/:id       → Detail & Aksi Verifikasi
 /admin/pengajuan            → Semua Pengajuan
 /admin/pengajuan/:id        → Detail Pengajuan
+/admin/users                → Kelola Akun Petugas Desa
 /admin/notifikasi           → List Notifikasi Admin
 ```
 
