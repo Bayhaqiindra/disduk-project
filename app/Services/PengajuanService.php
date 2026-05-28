@@ -51,11 +51,12 @@ class PengajuanService
             ]);
 
             // 4. Upload requirements files
-            foreach ($persyaratanFiles as $file) {
+            foreach ($persyaratanFiles as $persyaratanId => $file) {
                 if ($file instanceof UploadedFile) {
-                    $storedFile = $this->storageService.store($file);
+                    $storedFile = $this->storageService->store($file);
                     DokumenUpload::create([
                         'pengajuan_id' => $pengajuan->id,
+                        'persyaratan_id' => is_numeric($persyaratanId) ? (int) $persyaratanId : null,
                         'tipe' => 'persyaratan',
                         'nama_file' => $storedFile['nama_file'],
                         'path' => $storedFile['path'],

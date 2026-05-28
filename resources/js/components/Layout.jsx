@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ShieldCheck, LayoutDashboard, FileSpreadsheet, Bell, LogOut,
-  User, Menu, X, ArrowLeft, RefreshCw
+  ShieldCheck, LayoutDashboard, Bell, LogOut,
+  Menu, X
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -108,24 +108,24 @@ const Layout = ({ children }) => {
       ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans">
-      {/* Sidebar - Desktop */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 border-r border-slate-800/80 transition-transform duration-300 md:translate-x-0 ${
+    <div className="min-h-screen bg-gray-50 text-gray-800 flex font-sans">
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transition-transform duration-300 md:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } flex flex-col justify-between`}>
+      } flex flex-col justify-between shadow-lg md:shadow-none`}>
         <div>
           {/* Logo Brand */}
-          <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/15">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold tracking-tight text-white leading-tight">DISDUKCAPIL</h2>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Bengkalis Digital</p>
+                <h2 className="text-sm font-extrabold tracking-tight text-gray-900 leading-tight">SILADUK</h2>
+                <p className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">Disdukcapil Bengkalis</p>
               </div>
             </div>
-            <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+            <button className="md:hidden text-gray-400 hover:text-gray-700" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -144,8 +144,8 @@ const Layout = ({ children }) => {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${
                     active 
-                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/15' 
-                      : 'text-slate-400 hover:bg-slate-800/55 hover:text-slate-200'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                   }`}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
@@ -157,21 +157,21 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Footer Sidebar / User Info */}
-        <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800/50 mb-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-extrabold text-sm shrink-0">
+        <div className="p-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 mb-3">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-extrabold text-sm shrink-0">
               {user.name.charAt(0)}
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-bold text-white truncate">{user.name}</p>
-              <p className="text-[9px] text-slate-500 font-bold uppercase truncate">
+              <p className="text-xs font-bold text-gray-900 truncate">{user.name}</p>
+              <p className="text-[9px] text-gray-500 font-bold uppercase truncate">
                 {user.role === 'admin' ? 'Admin Disduk' : `Desa ${user.desa}`}
               </p>
             </div>
           </div>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-rose-400 hover:bg-rose-500/5 transition"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition"
           >
             <LogOut className="w-5 h-5 shrink-0" />
             <span>Keluar Sistem</span>
@@ -179,17 +179,22 @@ const Layout = ({ children }) => {
         </div>
       </aside>
 
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/20 z-30 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 md:pl-64 flex flex-col min-h-screen">
         {/* Header Dashboard */}
-        <header className="sticky top-0 z-30 h-16 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/50 px-6 flex items-center justify-between">
+        <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur-md border-b border-gray-200 px-6 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-            <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setSidebarOpen(true)}>
+            <button className="md:hidden text-gray-500 hover:text-gray-700" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
             </button>
             <div className="hidden sm:block">
-              <h3 className="text-sm font-bold text-white">Dashboard Layanan Digital</h3>
-              <p className="text-[10px] text-slate-500 font-semibold">{user.role === 'admin' ? 'Akses Penuh Verifikasi & Pengajuan' : `Layanan Pengajuan Desa ${user.desa}`}</p>
+              <h3 className="text-sm font-bold text-gray-900">Dashboard Layanan Digital</h3>
+              <p className="text-[10px] text-gray-500 font-semibold">{user.role === 'admin' ? 'Akses Penuh Verifikasi & Pengajuan' : `Layanan Pengajuan Desa ${user.desa}`}</p>
             </div>
           </div>
 
@@ -202,11 +207,11 @@ const Layout = ({ children }) => {
                   fetchNotifications();
                 }
               }}
-              className="relative p-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition text-slate-400 hover:text-white"
+              className="relative p-2.5 bg-gray-50 border border-gray-200 hover:border-blue-300 rounded-xl transition text-gray-500 hover:text-blue-600"
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center text-[9px] font-black border-2 border-slate-950 animate-bounce">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white animate-bounce">
                   {unreadCount}
                 </span>
               )}
@@ -214,11 +219,11 @@ const Layout = ({ children }) => {
 
             {/* Notification Dropdown Menu */}
             {notifDropdownOpen && (
-              <div className="absolute right-0 top-14 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 flex flex-col max-h-[400px]">
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-800 mb-2">
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Notifikasi Sistem</h4>
+              <div className="absolute right-0 top-14 w-80 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 flex flex-col max-h-[400px]">
+                <div className="flex justify-between items-center pb-2.5 border-b border-gray-100 mb-2">
+                  <h4 className="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Notifikasi</h4>
                   {unreadCount > 0 && (
-                    <button onClick={handleReadAll} className="text-[10px] font-bold text-indigo-400 hover:underline">
+                    <button onClick={handleReadAll} className="text-[10px] font-bold text-blue-600 hover:underline">
                       Tandai Semua Dibaca
                     </button>
                   )}
@@ -227,7 +232,7 @@ const Layout = ({ children }) => {
                 {/* Notif List */}
                 <div className="overflow-y-auto space-y-1.5 flex-1 pr-1">
                   {notifications.length === 0 ? (
-                    <p className="text-[11px] text-slate-500 text-center py-8">Tidak ada notifikasi baru.</p>
+                    <p className="text-[11px] text-gray-400 text-center py-8">Tidak ada notifikasi baru.</p>
                   ) : (
                     notifications.map((notif) => (
                       <div 
@@ -235,13 +240,13 @@ const Layout = ({ children }) => {
                         onClick={() => handleNotificationClick(notif)}
                         className={`p-3 rounded-xl border text-left cursor-pointer transition ${
                           notif.is_read 
-                            ? 'bg-slate-950/30 border-slate-900/60 hover:bg-slate-900/40 text-slate-400' 
-                            : 'bg-indigo-500/5 border-indigo-500/20 hover:bg-indigo-500/10 text-white'
+                            ? 'bg-gray-50 border-gray-100 hover:bg-gray-100 text-gray-500' 
+                            : 'bg-blue-50 border-blue-200 hover:bg-blue-100 text-gray-800'
                         }`}
                       >
                         <p className="text-xs font-bold truncate">{notif.judul}</p>
-                        <p className="text-[10px] text-slate-400 leading-normal mt-1">{notif.pesan}</p>
-                        <span className="text-[8px] font-bold text-slate-500 block mt-1.5">{new Date(notif.created_at).toLocaleString('id-ID')}</span>
+                        <p className="text-[10px] text-gray-500 leading-normal mt-1">{notif.pesan}</p>
+                        <span className="text-[8px] font-bold text-gray-400 block mt-1.5">{new Date(notif.created_at).toLocaleString('id-ID')}</span>
                       </div>
                     ))
                   )}

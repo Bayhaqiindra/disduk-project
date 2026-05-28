@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Layanan (Services)
     Route::get('/layanan', [LayananController::class, 'index']);
     Route::get('/layanan/{id}', [LayananController::class, 'show']);
+    Route::get('/layanan/{id}/persyaratan', [LayananController::class, 'persyaratan']);
 
     // Pengajuan (Submissions)
     Route::get('/pengajuan', [PengajuanController::class, 'index']);

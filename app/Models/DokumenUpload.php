@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['pengajuan_id', 'tipe', 'nama_file', 'path', 'mime_type', 'ukuran', 'uploaded_by'])]
+#[Fillable(['pengajuan_id', 'persyaratan_id', 'tipe', 'nama_file', 'path', 'mime_type', 'ukuran', 'uploaded_by'])]
 class DokumenUpload extends Model
 {
     use HasFactory, HasRls;
@@ -26,6 +26,11 @@ class DokumenUpload extends Model
     public function pengajuan(): BelongsTo
     {
         return $this->belongsTo(Pengajuan::class, 'pengajuan_id');
+    }
+
+    public function persyaratan(): BelongsTo
+    {
+        return $this->belongsTo(Persyaratan::class, 'persyaratan_id');
     }
 
     public function uploader(): BelongsTo

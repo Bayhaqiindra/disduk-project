@@ -61,9 +61,29 @@ class PengajuanController extends Controller
             'persyaratan.*' => 'required|file|max:10240|mimes:pdf,jpg,png', // Max 10MB
         ]);
 
+        $layananId = $request->layanan_id;
+        $wajibPersyaratan = \App\Models\Persyaratan::where('layanan_id', $layananId)
+            ->where('is_wajib', true)
+            ->pluck('id')
+            ->toArray();
+
+        $uploadedKeys = array_keys($request->file('persyaratan') ?? []);
+        $missing = array_diff($wajibPersyaratan, $uploadedKeys);
+
+        if (!empty($missing)) {
+            $missingNames = \App\Models\Persyaratan::whereIn('id', $missing)->pluck('nama_dokumen')->toArray();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Beberapa dokumen wajib belum diunggah: ' . implode(', ', $missingNames),
+                'errors' => [
+                    'persyaratan' => ['Dokumen wajib berikut harus diunggah: ' . implode(', ', $missingNames)]
+                ]
+            ], 422);
+        }
+
         $pengajuan = $this->pengajuanService->create(
             Auth::id(),
-            $request->layanan_id,
+            $layananId,
             $request->file('formulir'),
             $request->file('persyaratan')
         );
@@ -72,7 +92,7 @@ class PengajuanController extends Controller
             'status' => 'success',
             'message' => 'Pengajuan berhasil dibuat',
             'data' => $pengajuan->load('layanan')
-        ], 21);
+        ], 201);
     }
 
     /**

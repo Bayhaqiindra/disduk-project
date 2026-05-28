@@ -1,8 +1,8 @@
 # PRD — Sistem Layanan Administrasi Kependudukan Digital
 ## UPT Disdukcapil Bengkalis
 
-**Versi**: 1.2  
-**Tanggal**: 21 Mei 2026  
+**Versi**: 1.3  
+**Tanggal**: 27 Mei 2026  
 **Status**: Draft
 
 ---
@@ -137,18 +137,23 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 ---
 
-## 6. Daftar Layanan (8 Kartu)
+## 6. Daftar Layanan (8 Kategori & Sub-Layanan Dinamis)
 
-| No | Layanan | Kode |
-|----|---------|------|
-| 1 | Pembuatan KK Baru | KK-BARU |
-| 2 | Perubahan KK | KK-UBAH |
-| 3 | Penerbitan Akta Kelahiran | AK-LAHIR |
-| 4 | Penerbitan Akta Kematian | AK-MATI |
-| 5 | Penerbitan Akta Perkawinan | AK-NIKAH |
-| 6 | Penerbitan Akta Perceraian | AK-CERAI |
-| 7 | Pengakuan Anak | AK-ANAK |
-| 8 | Pengesahan Anak | AK-SAH |
+Sistem melayani 8 kategori layanan kependudukan utama, dengan beberapa kategori memiliki sub-layanan spesifik yang diatur secara dinamis melalui database:
+
+1. **Kartu Keluarga (KK)**
+   - Penerbitan KK Baru untuk WNI (`KK-BARU`, Formulir: `F-1.02 ~ F-1.06`)
+   - Penerbitan KK Karena Perubahan Elemen Data (`KK-UBAH`, Formulir: `F-1.02 ~ F-1.06`)
+   - Penerbitan KK Baru WNI Karena Hilang/Rusak (`KK-HILANG`, Formulir: `F-1.02`)
+2. **Akta Kelahiran**
+   - Penerbitan Akta Kelahiran Normal (`AK-LAHIR-NORMAL`, Formulir: `F-2.01a`)
+   - Pencatatan Kelahiran WNI Anak Temuan/Tidak Diketahui Asal-Usul (`AK-LAHIR-TEMUAN`, Formulir: `F-2.01a`)
+3. **Akta Perkawinan** (`AK-NIKAH`, Formulir: `F-2.01b`)
+4. **Akta Perceraian** (`AK-CERAI`, Formulir: `F-2.01c`)
+5. **Akta Kematian** (`AK-MATI`, Formulir: `F-2.28`)
+6. **Akta Pengakuan Anak** (`AK-ANAK`, Formulir: `F-2.01d`)
+7. **Akta Pengesahan Anak** (`AK-SAH`, Formulir: `F-2.01d`)
+8. **Pencatatan Perubahan Nama** (`UBAH-NAMA`, Formulir: `F-2.01e`)
 
 ---
 
@@ -204,30 +209,31 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Dikembalikan | Pengajuan status "dikembalikan" |
 | Tabel Pengajuan Terbaru | 5 pengajuan terakhir |
 
-#### 7.3.2 Ajukan Layanan (Step-by-Step)
+#### 7.3.2 Ajukan Layanan (Step-by-Step Dinamis - 4 Langkah)
 
-**Step 1 — Pilih Layanan**
-- Grid 8 card layanan
-- Setiap card berisi: ikon, nama layanan, deskripsi singkat
-- Klik card → lanjut ke Step 2
+**Step 1 — Pilih Kategori Layanan**
+- Grid 8 card kategori besar (Kartu Keluarga, Akta Kelahiran, dll)
+- Klik kategori → lanjut ke Step 2 (jika kategori memiliki sub-layanan) atau langsung ke Step 3 (jika tidak).
 
-**Step 2 — Download & Upload**
+**Step 2 — Pilih Jenis Sub-Layanan**
+- Tampil jika kategori terpilih memiliki sub-layanan (misalnya Kartu Keluarga memiliki 3 opsi).
+- Memilih salah satu sub-layanan, lalu lanjut ke Step 3.
 
-| Aksi | Detail |
-|------|--------|
-| Download Template | Generate PDF formulir kosong via jsPDF |
-| Petunjuk | "Cetak → isi manual → tanda tangani → scan/foto" |
-| Upload Formulir | File yang sudah diisi & ditandatangani |
-| Upload Berkas Persyaratan | Dokumen pendukung sesuai jenis layanan |
+**Step 3 — Unduh Formulir & Ketahui Persyaratan**
+- Menampilkan kode formulir (misal `F-1.02`) dengan tombol unduh dinamis.
+- Menampilkan daftar berkas persyaratan (wajib & opsional) yang diambil dari database.
+- Klik lanjut ke Step 4.
 
-**Validasi Upload**:
-- Format: PDF, JPG, PNG
-- Ukuran max: 10MB per file
-- Minimum 1 file formulir + berkas persyaratan
+**Step 4 — Unggah Formulir & Berkas**
+- Menyediakan dynamic input upload untuk masing-masing item persyaratan yang terdaftar.
+- **Validasi Unggahan**:
+  - Format: PDF, JPG, PNG
+  - Ukuran max: 10MB per file
+  - Berkas bertanda wajib (`is_wajib = true`) mutlak harus diupload.
 
-**Step 3 — Konfirmasi & Submit**
-- Preview ringkasan pengajuan
-- Tombol "Ajukan" → simpan ke database → status = "menunggu"
+**Step 5 — Konfirmasi & Submit**
+- Preview ringkasan pilihan layanan dan nama berkas yang telah diupload.
+- Tombol "Ajukan" -> simpan ke database -> status = "menunggu".
 
 #### 7.3.3 Pengajuan Saya
 
@@ -462,23 +468,40 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
 | id | BIGINT PK | Auto increment |
-| kode | VARCHAR(20) UNIQUE | Kode layanan (e.g. KK-BARU) |
-| nama | VARCHAR(255) | Nama layanan |
-| deskripsi | TEXT | Deskripsi layanan |
-| persyaratan | JSON | List persyaratan dokumen |
-| icon | VARCHAR(100) | Nama icon |
-| is_active | BOOLEAN | Status aktif |
+| parent_id | BIGINT FK → layanan.id NULL | Mengacu ke kategori utama jika merupakan sub-layanan |
+| kode | VARCHAR(20) UNIQUE | Kode layanan (e.g. KK, KK-BARU, AK-LAHIR-NORMAL) |
+| kode_formulir | VARCHAR(50) NULL | Kode formulir resmi (e.g. F-1.02) |
+| nama | VARCHAR(255) | Nama kategori/sub-layanan |
+| kategori | VARCHAR(100) NULL | Pengelompokan (e.g. Kartu Keluarga, Akta Kelahiran) |
+| deskripsi | TEXT NULL | Deskripsi layanan |
+| icon | VARCHAR(100) NULL | Nama icon (untuk kategori utama) |
+| urutan | INTEGER DEFAULT 0 | Pengurutan sorting di UI |
+| is_active | BOOLEAN DEFAULT true | Status aktif |
 | created_at | TIMESTAMP | |
 | updated_at | TIMESTAMP | |
 
-### 9.3 Tabel `pengajuan`
+### 9.3 Tabel `persyaratan`
+
+| Kolom | Tipe | Deskripsi |
+|-------|------|-----------|
+| id | BIGINT PK | Auto increment |
+| layanan_id | BIGINT FK → layanan.id | Terhubung ke sub-layanan terkait |
+| nama_dokumen | VARCHAR(255) | Nama berkas persyaratan |
+| deskripsi | TEXT NULL | Deskripsi tambahan berkas |
+| is_wajib | BOOLEAN DEFAULT true | Apakah berkas wajib diunggah |
+| catatan | VARCHAR(255) NULL | Catatan khusus (e.g. "Bagi penduduk pindah") |
+| urutan | INTEGER DEFAULT 0 | Urutan berkas di checklist |
+| created_at | TIMESTAMP | |
+| updated_at | TIMESTAMP | |
+
+### 9.4 Tabel `pengajuan`
 
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
 | id | BIGINT PK | Auto increment |
 | nomor_pengajuan | VARCHAR(50) UNIQUE | Format: `LYN-YYYYMMDD-XXXXX` |
 | user_id | BIGINT FK → users.id | Petugas yang mengajukan |
-| layanan_id | BIGINT FK → layanan.id | Jenis layanan |
+| layanan_id | BIGINT FK → layanan.id | Jenis layanan/sub-layanan |
 | status | ENUM | `menunggu`, `diverifikasi`, `dikembalikan`, `diproses`, `selesai` |
 | catatan_admin | TEXT NULL | Catatan dari admin (jika dikembalikan) |
 | verified_by | BIGINT FK → users.id NULL | Admin yang verifikasi |
@@ -491,12 +514,13 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 > **RLS**: Petugas Desa hanya melihat `WHERE user_id = auth()->id()`
 
-### 9.4 Tabel `dokumen_upload`
+### 9.5 Tabel `dokumen_upload`
 
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
 | id | BIGINT PK | Auto increment |
 | pengajuan_id | BIGINT FK → pengajuan.id | Relasi ke pengajuan |
+| persyaratan_id | BIGINT FK → persyaratan.id NULL | Menghubungkan berkas ke item persyaratan spesifik |
 | tipe | ENUM | `formulir`, `persyaratan`, `hasil` |
 | nama_file | VARCHAR(255) | Nama asli file |
 | path | VARCHAR(500) | Path penyimpanan di storage |
@@ -508,7 +532,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 > **RLS**: Akses file mengikuti akses pengajuan induk
 
-### 9.5 Tabel `notifikasi`
+### 9.6 Tabel `notifikasi`
 
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
@@ -523,7 +547,7 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 > **RLS**: User hanya melihat `WHERE user_id = auth()->id()`
 
-### 9.6 Tabel `status_log`
+### 9.7 Tabel `status_log`
 
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
@@ -551,8 +575,9 @@ Sistem layanan administrasi kependudukan digital yang memungkinkan **Petugas Des
 
 | Method | Endpoint | Deskripsi | Akses |
 |--------|----------|-----------|-------|
-| GET | `/api/layanan` | List semua layanan aktif | All authenticated |
-| GET | `/api/layanan/{id}` | Detail layanan + persyaratan | All authenticated |
+| GET | `/api/layanan` | List semua layanan aktif dengan hierarki (kategori + sub_layanan) | All authenticated |
+| GET | `/api/layanan/{id}` | Detail layanan / sub-layanan | All authenticated |
+| GET | `/api/layanan/{id}/persyaratan` | Daftar persyaratan untuk layanan/sub-layanan tertentu | All authenticated |
 
 ### 10.3 Pengajuan
 
@@ -668,57 +693,76 @@ Setiap layanan memiliki template PDF formulir yang di-generate client-side mengg
 
 ## 14. Persyaratan Dokumen per Layanan
 
-### KK Baru (KK-BARU)
-1. Surat Pengantar RT/RW
-2. Fotokopi KTP semua anggota keluarga
-3. Fotokopi Akta Nikah/Cerai
-4. Fotokopi Akta Kelahiran anak
-5. Surat Keterangan Pindah (jika pindah)
+Daftar berkas persyaratan wajib (atau opsional jika ditandai "bila ada") untuk masing-masing layanan kependudukan:
 
-### Perubahan KK (KK-UBAH)
-1. KK lama (asli)
-2. Fotokopi KTP pemohon
-3. Surat Pengantar RT/RW
-4. Dokumen pendukung perubahan
+### 14.1 Kartu Keluarga (KK)
+*   **Penerbitan KK Baru untuk WNI (`KK-BARU`)**
+    1. Buku nikah/kutipan akta perkawinan atau kutipan akta perceraian (Wajib)
+    2. Surat keterangan pindah/surat keterangan datang bagi penduduk yang pindah dalam wilayah NKRI (Wajib)
+*   **Penerbitan KK Karena Perubahan Elemen Data (`KK-UBAH`)**
+    1. KK lama (asli/scan) (Wajib)
+    2. Surat keterangan/bukti perubahan Peristiwa Kependudukan dan Peristiwa Penting (Wajib)
+*   **Penerbitan KK Baru untuk WNI Karena Hilang atau Rusak (`KK-HILANG`)**
+    1. Surat keterangan hilang dari kepolisian ATAU KK yang rusak (scan) (Wajib)
+    2. Fotokopi KTP-el (Wajib)
 
-### Akta Kelahiran (AK-LAHIR)
-1. Surat Keterangan Lahir dari RS/Bidan
-2. Fotokopi KK orang tua
-3. Fotokopi KTP kedua orang tua
-4. Fotokopi Akta Nikah orang tua
-5. Fotokopi KTP 2 orang saksi
+### 14.2 Akta Kelahiran
+*   **Penerbitan Akta Kelahiran Normal (`AK-LAHIR-NORMAL`)**
+    1. Surat keterangan kelahiran dari RS/bidan (Wajib)
+    2. Buku nikah/kutipan akta perkawinan atau bukti lain yang sah (fotokopi) (Wajib)
+    3. Fotokopi KK (Wajib)
+    4. Fotokopi KTP orang tua (Wajib)
+    5. Fotokopi KTP pelapor (Wajib)
+    6. Fotokopi KTP 2 orang saksi (Wajib)
+*   **Pencatatan Kelahiran WNI Temuan/Tidak Diketahui Asal-Usul (`AK-LAHIR-TEMUAN`)**
+    1. Berita acara dari kepolisian (Wajib)
+    2. Fotokopi KTP pelapor (Wajib)
+    3. Fotokopi KTP 2 orang saksi (Wajib)
 
-### Akta Kematian (AK-MATI)
-1. Surat Keterangan Kematian dari RS/Dokter
-2. Fotokopi KK almarhum
-3. Fotokopi KTP almarhum
-4. Fotokopi KTP pelapor
-5. Fotokopi KTP 2 orang saksi
+### 14.3 Akta Perkawinan (`AK-NIKAH`)
+1. Surat keterangan telah terjadinya perkawinan dari pemuka agama atau penghayat kepercayaan terhadap Tuhan Yang Maha Esa (Wajib)
+2. Pas foto berwarna suami dan istri (Wajib)
+3. Fotokopi KK (Wajib)
+4. Fotokopi KTP-el pasangan suami istri (Wajib)
+5. Fotokopi KTP 2 orang saksi (Wajib)
 
-### Akta Perkawinan (AK-NIKAH)
-1. Surat Keterangan dari pemuka agama
-2. Fotokopi KTP kedua mempelai
-3. Fotokopi Akta Kelahiran kedua mempelai
-4. Fotokopi KTP 2 orang saksi
-5. Pas foto bersama
+### 14.4 Akta Perceraian (`AK-CERAI`)
+1. Salinan putusan pengadilan yang telah mempunyai kekuatan hukum tetap (Wajib)
+2. Kutipan akta perkawinan (Wajib)
+3. Fotokopi KK (Wajib)
+4. Fotokopi KTP-el pasangan (Wajib)
+5. Fotokopi KTP 2 orang saksi (Wajib)
 
-### Akta Perceraian (AK-CERAI)
-1. Salinan Putusan Pengadilan
-2. Fotokopi Akta Perkawinan
-3. Fotokopi KTP kedua pihak
-4. Fotokopi KK
+### 14.5 Akta Kematian (`AK-MATI`)
+1. Surat pengantar dari RT dan RW setempat (Wajib)
+2. Surat keterangan dari kepala desa/lurah setempat (Wajib)
+3. Surat keterangan kematian dari dokter/paramedis (Wajib)
+4. Fotokopi Kartu Keluarga (Wajib)
+5. Surat keterangan catatan kematian dari kepolisian (Opsional - bila ada)
+6. Surat keterangan penetapan pengadilan mengenai kematian yang hilang atau tidak diketahui jenazahnya (Opsional - bila ada)
+7. Fotokopi KTP pelapor (Wajib)
+8. Fotokopi KTP 2 orang saksi (Wajib)
 
-### Pengakuan Anak (AK-ANAK)
-1. Surat Pernyataan Pengakuan Anak
-2. Fotokopi KK
-3. Fotokopi KTP kedua orang tua
-4. Fotokopi Akta Kelahiran anak
+### 14.6 Akta Pengakuan Anak (`AK-ANAK`)
+1. Surat pengantar dari RT/RW (Wajib)
+2. Surat pernyataan pengakuan anak dari ayah biologis yang disetujui oleh ibu kandung (Wajib)
+3. Kutipan akta kelahiran (Wajib)
+4. Fotokopi KK dan KTP ayah biologis dan ibu kandung (Wajib)
+5. Nomor putusan pengadilan/penetapan pengadilan (Opsional - bila ada)
 
-### Pengesahan Anak (AK-SAH)
-1. Surat Pernyataan Pengesahan Anak
-2. Fotokopi Akta Perkawinan orang tua
-3. Fotokopi KK
-4. Fotokopi Akta Kelahiran anak
+### 14.7 Akta Pengesahan Anak (`AK-SAH`)
+1. Kutipan akta kelahiran (Wajib)
+2. Kutipan akta perkawinan (Wajib)
+3. Fotokopi KK pemohon (Wajib)
+4. Fotokopi KTP pemohon (Wajib)
+5. Surat keterangan penetapan pengadilan tentang pengesahan anak (Wajib)
+
+### 14.8 Pencatatan Perubahan Nama (`UBAH-NAMA`)
+1. Salinan penetapan pengadilan negeri (Wajib)
+2. Kutipan akta Pencatatan Sipil (akta yang mau diubah namanya) (Wajib)
+3. Fotokopi KK (Wajib)
+4. Fotokopi KTP-el (Wajib)
+5. Dokumen Perjalanan bagi Orang Asing (Opsional - bila ada)
 
 ---
 

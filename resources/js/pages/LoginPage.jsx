@@ -47,26 +47,27 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-6 relative">
-      {/* Background Gradients */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col justify-center items-center p-6 relative font-sans">
+      {/* Subtle decorative circles */}
+      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-100/50 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-60 h-60 bg-blue-200/30 rounded-full blur-[80px] pointer-events-none"></div>
 
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        {/* Border Top Accent */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500"></div>
+      <div className="w-full max-w-md bg-white border-2 border-gray-100 rounded-2xl p-8 shadow-xl relative overflow-hidden">
+        {/* Top Accent Bar */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-600"></div>
 
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20 mb-4">
             <ShieldCheck className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-black tracking-tight text-white">Selamat Datang</h2>
-          <p className="text-xs text-slate-400 mt-1">Sistem Layanan Online UPT Disdukcapil Bengkalis</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Selamat Datang</h2>
+          <p className="text-xs text-gray-500 mt-1">Sistem Layanan Online UPT Disdukcapil Bengkalis</p>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="flex items-start gap-3 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl mb-6">
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl mb-6">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p className="leading-relaxed">{error}</p>
           </div>
@@ -75,31 +76,31 @@ const LoginPage = () => {
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Alamat Email</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Alamat Email</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input 
                 type="email" 
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@desa.id atau admin@disduk.id"
-                className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition"
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-800 placeholder:text-gray-400 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Kata Sandi</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Kata Sandi</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input 
                 type="password" 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition"
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-800 placeholder:text-gray-400 transition"
               />
             </div>
           </div>
@@ -107,7 +108,7 @@ const LoginPage = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 active:scale-[0.98] transition flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? (
               <>
@@ -121,13 +122,13 @@ const LoginPage = () => {
         </form>
 
         {/* Info */}
-        <div className="mt-8 text-center text-[10px] text-slate-500 leading-relaxed border-t border-slate-800 pt-6">
+        <div className="mt-8 text-center text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-6">
           <p>Hanya untuk Petugas Desa yang ditunjuk & Admin UPT Disdukcapil Bengkalis.</p>
           <p className="mt-1">Punya masalah masuk? Hubungi Administrator UPT Disdukcapil.</p>
         </div>
       </div>
 
-      <a href="/" className="mt-8 text-xs text-slate-400 hover:text-indigo-400 transition font-medium">
+      <a href="/" className="mt-8 text-xs text-gray-500 hover:text-blue-600 transition font-medium">
         ← Kembali ke Beranda
       </a>
     </div>

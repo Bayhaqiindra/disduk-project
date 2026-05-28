@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('dokumen_upload', function (Blueprint $table) {
             $table->id();
             $table->foreignId('pengajuan_id')->constrained('pengajuan')->onDelete('cascade');
+            $table->foreignId('persyaratan_id')->nullable()->constrained('persyaratan')->onDelete('set null');
             $table->enum('tipe', ['formulir', 'persyaratan', 'hasil']);
             $table->string('nama_file', 255);
             $table->string('path', 500);
