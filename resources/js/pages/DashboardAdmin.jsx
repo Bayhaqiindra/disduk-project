@@ -578,11 +578,19 @@ const DashboardAdmin = () => {
             {/* Dokumen lampiran */}
             <div className="mt-8">
               <h4 className="font-bold text-gray-900 mb-4">Lampiran Pemohon</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {selectedSubmission.uploads?.map(up => (
                   <div key={up.id} className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex justify-between items-center">
-                    <span className="text-sm font-bold text-gray-700 truncate">{up.nama_file}</span>
-                    <a href={`/api/dokumen/${up.id}/download`} className="text-blue-600"><Download className="w-4 h-4"/></a>
+                    <div className="overflow-hidden pr-3">
+                      <p className="text-sm font-bold text-gray-700 truncate">{up.nama_file}</p>
+                      <p className="text-[10px] font-bold text-blue-600 uppercase mt-1">
+                        {up.tipe === 'formulir' ? 'Formulir Pendaftaran' : (up.persyaratan?.nama_dokumen || 'Persyaratan Tambahan')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <a href={`/api/dokumen/${up.id}/preview`} target="_blank" rel="noreferrer" className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-600 transition"><Eye className="w-4 h-4"/></a>
+                      <a href={`/api/dokumen/${up.id}/download`} className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-600 transition"><Download className="w-4 h-4"/></a>
+                    </div>
                   </div>
                 ))}
               </div>

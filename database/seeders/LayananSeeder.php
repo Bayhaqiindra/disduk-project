@@ -15,10 +15,10 @@ class LayananSeeder extends Seeder
     public function run(): void
     {
         // Clear tables to avoid conflicts
-        DB::statement('PRAGMA foreign_keys = OFF;');
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
         Persyaratan::truncate();
         Layanan::truncate();
-        DB::statement('PRAGMA foreign_keys = ON;');
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
         // 1. Kategori: Kartu Keluarga
         $kk = Layanan::create([

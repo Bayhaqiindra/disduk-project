@@ -101,7 +101,7 @@ class PengajuanController extends Controller
     public function show(int $id): JsonResponse
     {
         // Finding record; automatically scopes by RlsScope if user is petugas_desa
-        $pengajuan = Pengajuan::with(['layanan', 'user', 'uploads.uploader', 'logs.user'])->find($id);
+        $pengajuan = Pengajuan::with(['layanan', 'user', 'uploads.uploader', 'uploads.persyaratan', 'logs.user'])->find($id);
 
         if (!$pengajuan) {
             return response()->json([

@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { 
   FileText, FileEdit, Baby, Activity, Heart, Scissors, UserCheck, Award,
-  ArrowRight, ShieldCheck, Download, Upload, CheckCircle2, ChevronRight,
+  ArrowRight, ArrowLeft, ShieldCheck, Download, Upload, CheckCircle2, ChevronRight,
   AlertCircle, Loader2, Eye, Calendar, User, FileUp, X, Check, HelpCircle
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 
 const DashboardPetugas = () => {
-  // Tabs: 'dashboard' | 'ajukan' | 'list'
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const activeTab = queryParams.get('tab') || 'dashboard';
   
   // Dashboard stats
   const [stats, setStats] = useState({ total: 0, menunggu: 0, diverifikasi: 0, diproses: 0, selesai: 0, dikembalikan: 0 });
@@ -24,36 +27,48 @@ const DashboardPetugas = () => {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
 
   // New Submission state
-  const [submitStep, setSubmitStep] = useState(1);
-  const [selectedService, setSelectedService] = useState(null);
+  const [submitStep, setSubmitStep] = useState(1); // 1: Kategori, 2: Sub-Layanan, 3: Upload
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubService, setSelectedSubService] = useState(null);
+  const [persyaratanList, setPersyaratanList] = useState([]);
+  const [loadingPersyaratan, setLoadingPersyaratan] = useState(false);
+  
   const [formulirFile, setFormulirFile] = useState(null);
   const [reqFiles, setReqFiles] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // 8 Services configuration from PRD
-  const services = [
-    { id: 1, kode: 'KK-BARU', nama: 'Pembuatan KK Baru', desc: 'Pembuatan Kartu Keluarga baru karena pernikahan baru, pemisahan KK, atau kedatangan.', icon: FileText, color: 'from-blue-500 to-indigo-600', req: ['Surat Pengantar RT/RW', 'Fotokopi KTP semua anggota keluarga', 'Fotokopi Akta Nikah/Cerai', 'Fotokopi Akta Kelahiran anak', 'Surat Keterangan Pindah'] },
-    { id: 2, kode: 'KK-UBAH', nama: 'Perubahan KK', desc: 'Perubahan data KK karena penambahan, pengurangan, atau perbaikan data biodata.', icon: FileEdit, color: 'from-purple-500 to-pink-600', req: ['KK lama (asli)', 'Fotokopi KTP pemohon', 'Surat Pengantar RT/RW', 'Dokumen pendukung perubahan'] },
-    { id: 3, kode: 'AK-LAHIR', nama: 'Penerbitan Akta Kelahiran', desc: 'Pencatatan kelahiran anak baru lahir untuk mendapatkan dokumen Akta Kelahiran.', icon: Baby, color: 'from-emerald-500 to-teal-600', req: ['Surat Keterangan Lahir dari RS/Bidan', 'Fotokopi KK orang tua', 'Fotokopi KTP kedua orang tua', 'Fotokopi Akta Nikah orang tua', 'Fotokopi KTP 2 orang saksi'] },
-    { id: 4, kode: 'AK-MATI', nama: 'Penerbitan Akta Kematian', desc: 'Pencatatan kematian penduduk untuk mendapatkan sertifikat Akta Kematian.', icon: Activity, color: 'from-rose-500 to-orange-600', req: ['Surat Keterangan Kematian dari RS/Dokter/Kades', 'Fotokopi KK almarhum', 'Fotokopi KTP almarhum', 'Fotokopi KTP pelapor', 'Fotokopi KTP 2 orang saksi'] },
-    { id: 5, kode: 'AK-NIKAH', nama: 'Penerbitan Akta Perkawinan', desc: 'Pencatatan pernikahan penduduk non-Muslim untuk mendapatkan Akta Perkawinan sah.', icon: Heart, color: 'from-pink-500 to-rose-600', req: ['Surat Keterangan dari pemuka agama', 'Fotokopi KTP kedua mempelai', 'Fotokopi Akta Kelahiran mempelai', 'Fotokopi KTP 2 orang saksi', 'Pas foto bersama 4x6'] },
-    { id: 6, kode: 'AK-CERAI', nama: 'Penerbitan Akta Perceraian', desc: 'Pencatatan perceraian non-Muslim secara hukum berdasarkan keputusan pengadilan.', icon: Scissors, color: 'from-amber-500 to-red-600', req: ['Salinan Putusan Pengadilan', 'Fotokopi Akta Perkawinan asli', 'Fotokopi KTP kedua pihak', 'Fotokopi KK'] },
-    { id: 7, kode: 'AK-ANAK', nama: 'Pengakuan Anak', desc: 'Pengakuan status anak luar kawin secara sah oleh ayahnya dengan persetujuan ibu kandung.', icon: UserCheck, color: 'from-cyan-500 to-blue-600', req: ['Surat Pernyataan Pengakuan Anak', 'Fotokopi KK', 'Fotokopi KTP kedua orang tua', 'Fotokopi Akta Kelahiran anak'] },
-    { id: 8, kode: 'AK-SAH', nama: 'Pengesahan Anak', desc: 'Pengesahan status hukum anak luar nikah setelah pernikahan resmi kedua orang tua.', icon: Award, color: 'from-teal-500 to-indigo-600', req: ['Surat Pernyataan Pengesahan Anak', 'Fotokopi Akta Perkawinan orang tua', 'Fotokopi KK', 'Fotokopi Akta Kelahiran anak'] }
-  ];
+  const iconMap = {
+    'KK': FileText, 'AK-LAHIR': Baby, 'AK-NIKAH': Heart, 'AK-CERAI': Scissors,
+    'AK-MATI': Activity, 'AK-ANAK': UserCheck, 'AK-SAH': Award, 'UBAH-NAMA': FileEdit
+  };
+  
+  const colorMap = {
+    'KK': 'from-blue-500 to-indigo-600', 'AK-LAHIR': 'from-emerald-500 to-teal-600',
+    'AK-NIKAH': 'from-pink-500 to-rose-600', 'AK-CERAI': 'from-amber-500 to-red-600',
+    'AK-MATI': 'from-rose-500 to-orange-600', 'AK-ANAK': 'from-cyan-500 to-blue-600',
+    'AK-SAH': 'from-teal-500 to-indigo-600', 'UBAH-NAMA': 'from-purple-500 to-pink-600'
+  };
 
   useEffect(() => {
-    fetchStats();
-    fetchRecentSubmissions();
+    if (activeTab === 'dashboard') {
+      fetchStats();
+      fetchRecentSubmissions();
+    } else if (activeTab === 'list') {
+      fetchAllSubmissions();
+    } else if (activeTab === 'ajukan') {
+      fetchCategories();
+    }
     
     // Check if redirect detail is in URL query parameters
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const detailId = params.get('detail');
     if (detailId) {
       handleViewDetail(detailId);
     }
-  }, []);
+  }, [activeTab, location.search]);
 
   const fetchStats = async () => {
     setLoadingStats(true);
@@ -64,6 +79,30 @@ const DashboardPetugas = () => {
       console.error(err);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const response = await api.get('/layanan');
+      setCategories(response.data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const fetchPersyaratan = async (layananId) => {
+    setLoadingPersyaratan(true);
+    try {
+      const response = await api.get(`/layanan/${layananId}/persyaratan`);
+      setPersyaratanList(response.data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingPersyaratan(false);
     }
   };
 
@@ -92,15 +131,7 @@ const DashboardPetugas = () => {
     }
   };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'list') {
-      fetchAllSubmissions();
-    } else if (tab === 'dashboard') {
-      fetchStats();
-      fetchRecentSubmissions();
-    }
-  };
+
 
   const handleViewDetail = async (id) => {
     try {
@@ -168,9 +199,9 @@ const DashboardPetugas = () => {
     
     doc.setFont('Helvetica', 'normal');
     let ry = 175;
-    service.req.forEach(r => {
+    persyaratanList.forEach(r => {
       doc.rect(20, ry - 3.5, 4, 4); // Draw checkbox
-      doc.text(r, 28, ry);
+      doc.text(r.nama_dokumen + (r.is_wajib ? ' *' : ' (Opsional)'), 28, ry);
       ry += 8;
     });
 
@@ -188,9 +219,7 @@ const DashboardPetugas = () => {
     doc.save(`Formulir_${service.kode}.pdf`);
   };
 
-  const handleSelectService = (svc) => {
-    setSelectedService(svc);
-    setSubmitStep(2);
+  const resetSubmissionForm = () => {
     setFormulirFile(null);
     setReqFiles({});
     setSubmitError(null);
@@ -234,9 +263,9 @@ const DashboardPetugas = () => {
     }
 
     // Validate all requirements are uploaded
-    const missing = selectedService.req.filter(r => !reqFiles[r]);
+    const missing = persyaratanList.filter(r => r.is_wajib && !reqFiles[r.id]);
     if (missing.length > 0) {
-      setSubmitError(`Harap upload berkas persyaratan: ${missing.join(', ')}.`);
+      setSubmitError(`Harap upload berkas persyaratan wajib: ${missing.map(m => m.nama_dokumen).join(', ')}.`);
       return;
     }
 
@@ -244,12 +273,15 @@ const DashboardPetugas = () => {
 
     try {
       const formData = new FormData();
-      formData.append('layanan_id', selectedService.id);
+      const finalServiceId = selectedSubService ? selectedSubService.id : selectedCategory.id;
+      formData.append('layanan_id', finalServiceId);
       formData.append('formulir', formulirFile);
       
-      // Append requirements files
-      selectedService.req.forEach(r => {
-        formData.append('persyaratan[]', reqFiles[r]);
+      // Append requirements files mapping to IDs
+      persyaratanList.forEach(r => {
+        if (reqFiles[r.id]) {
+          formData.append(`persyaratan[${r.id}]`, reqFiles[r.id]);
+        }
       });
 
       await api.post('/pengajuan', formData, {
@@ -259,11 +291,11 @@ const DashboardPetugas = () => {
       });
 
       // Clear states & navigate back to dashboard
-      setSelectedService(null);
-      setFormulirFile(null);
-      setReqFiles({});
+      setSelectedCategory(null);
+      setSelectedSubService(null);
+      resetSubmissionForm();
       setSubmitStep(1);
-      handleTabChange('dashboard');
+      navigate('/dashboard?tab=dashboard');
     } catch (err) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.message) {
@@ -289,40 +321,6 @@ const DashboardPetugas = () => {
 
   return (
     <Layout>
-      {/* Top Navigation tabs for Petugas */}
-      <div className="flex gap-3 pb-6 border-b border-slate-900 mb-8 overflow-x-auto">
-        <button 
-          onClick={() => handleTabChange('dashboard')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap border ${
-            activeTab === 'dashboard' 
-              ? 'bg-slate-900 border-indigo-500/40 text-white shadow-lg' 
-              : 'border-slate-800/40 text-slate-500 hover:text-slate-300 hover:bg-slate-900/40'
-          }`}
-        >
-          Overview Ringkasan
-        </button>
-        <button 
-          onClick={() => handleTabChange('ajukan')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap border ${
-            activeTab === 'ajukan' 
-              ? 'bg-slate-900 border-indigo-500/40 text-white shadow-lg' 
-              : 'border-slate-800/40 text-slate-500 hover:text-slate-300 hover:bg-slate-900/40'
-          }`}
-        >
-          Ajukan Layanan Baru
-        </button>
-        <button 
-          onClick={() => handleTabChange('list')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap border ${
-            activeTab === 'list' 
-              ? 'bg-slate-900 border-indigo-500/40 text-white shadow-lg' 
-              : 'border-slate-800/40 text-slate-500 hover:text-slate-300 hover:bg-slate-900/40'
-          }`}
-        >
-          Pengajuan Saya ({stats.total})
-        </button>
-      </div>
-
       {/* 1. OVERVIEW TAB */}
       {activeTab === 'dashboard' && (
         <div className="space-y-8">
@@ -424,43 +422,100 @@ const DashboardPetugas = () => {
             </div>
           </div>
 
-          {/* STEP 1: PILIH LAYANAN */}
+          {/* STEP 1: PILIH KATEGORI LAYANAN */}
           {submitStep === 1 && (
             <div className="space-y-6">
               <p className="text-sm text-slate-400">Pilih jenis layanan administrasi yang ingin Anda ajukan di bawah ini:</p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {services.map((svc) => {
-                  const Icon = svc.icon;
-                  return (
+              {loadingCategories ? (
+                 <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {categories.map((svc) => {
+                    const Icon = iconMap[svc.kode] || FileText;
+                    const color = colorMap[svc.kode] || 'from-slate-500 to-slate-600';
+                    return (
+                      <div 
+                        key={svc.id}
+                        onClick={() => {
+                          setSelectedCategory(svc);
+                          if (svc.sub_layanan && svc.sub_layanan.length > 0) {
+                            setSubmitStep(2); // Go to sub-service selection
+                          } else {
+                            // No sub-service, fetch persyaratan and go to step 3 directly
+                            setSelectedSubService(null);
+                            fetchPersyaratan(svc.id);
+                            setSubmitStep(3);
+                          }
+                          resetSubmissionForm();
+                        }}
+                        className="relative group p-6 bg-slate-900 border border-slate-900 hover:border-indigo-500/50 hover:bg-slate-900/60 rounded-2xl transition cursor-pointer overflow-hidden shadow-lg"
+                      >
+                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${color}`}></div>
+                        <div className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${color} flex items-center justify-center text-white mb-4`}>
+                          <Icon className="w-5.5 h-5.5" />
+                        </div>
+                        <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-indigo-400 transition">{svc.nama}</h3>
+                        <p className="text-[11px] text-slate-400 leading-normal mb-3">{svc.deskripsi || 'Pengurusan dokumen kependudukan'}</p>
+                        <div className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-400">
+                          <span>Pilih Layanan</span> <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition duration-200" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 2: PILIH SUB LAYANAN */}
+          {submitStep === 2 && selectedCategory && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <button 
+                onClick={() => setSubmitStep(1)}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" /> Kembali ke Kategori
+              </button>
+              <div className="p-6 bg-slate-900 border border-indigo-500/30 rounded-2xl">
+                <h3 className="text-lg font-bold text-white mb-2">Pilih Jenis Layanan {selectedCategory.nama}</h3>
+                <p className="text-sm text-slate-400 mb-6">Pilih salah satu spesifikasi layanan yang sesuai dengan kebutuhan pemohon:</p>
+                <div className="space-y-3">
+                  {selectedCategory.sub_layanan.map(sub => (
                     <div 
-                      key={svc.id}
-                      onClick={() => handleSelectService(svc)}
-                      className="relative group p-6 bg-slate-900 border border-slate-900 hover:border-indigo-500/50 hover:bg-slate-900/60 rounded-2xl transition cursor-pointer overflow-hidden shadow-lg"
+                      key={sub.id} 
+                      onClick={() => {
+                        setSelectedSubService(sub);
+                        fetchPersyaratan(sub.id);
+                        setSubmitStep(3);
+                      }}
+                      className="p-4 bg-slate-950/50 border border-slate-800 hover:border-indigo-500 hover:bg-slate-900/80 rounded-xl cursor-pointer transition flex items-center justify-between group"
                     >
-                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${svc.color}`}></div>
-                      <div className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${svc.color} flex items-center justify-center text-white mb-4`}>
-                        <Icon className="w-5.5 h-5.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition">{sub.nama}</h4>
+                        {sub.deskripsi && <p className="text-xs text-slate-500 mt-1">{sub.deskripsi}</p>}
                       </div>
-                      <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-indigo-400 transition">{svc.nama}</h3>
-                      <p className="text-[11px] text-slate-400 leading-normal mb-3">{svc.desc}</p>
-                      <div className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-400">
-                        <span>Pilih Layanan</span> <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition duration-200" />
-                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 transition" />
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* STEP 2: DOWNLOAD & UPLOAD */}
-          {submitStep === 2 && selectedService && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* STEP 3: DOWNLOAD & UPLOAD */}
+          {submitStep === 3 && (selectedCategory || selectedSubService) && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-right-4 duration-300">
               {/* Left sidebar: Guidelines & Template */}
               <div className="bg-slate-900 border border-slate-900 rounded-3xl p-6 space-y-6 h-fit">
                 <button 
-                  onClick={() => setSubmitStep(1)}
+                  onClick={() => {
+                    if (selectedCategory.sub_layanan && selectedCategory.sub_layanan.length > 0) {
+                      setSubmitStep(2);
+                    } else {
+                      setSubmitStep(1);
+                    }
+                  }}
                   className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition"
                 >
                   <ArrowLeft className="w-4 h-4" /> Kembali
@@ -468,7 +523,7 @@ const DashboardPetugas = () => {
 
                 <div className="border-b border-slate-800 pb-4">
                   <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Layanan Terpilih</span>
-                  <h3 className="text-base font-extrabold text-white mt-1">{selectedService.nama}</h3>
+                  <h3 className="text-base font-extrabold text-white mt-1">{selectedSubService ? selectedSubService.nama : selectedCategory.nama}</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -477,7 +532,7 @@ const DashboardPetugas = () => {
                     Sistem akan membuat file formulir pendaftaran kosong secara otomatis. Silakan unduh, cetak, isi secara manual, dan tanda tangani.
                   </p>
                   <button 
-                    onClick={() => generateFormTemplate(selectedService)}
+                    onClick={() => generateFormTemplate(selectedSubService || selectedCategory)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-xs transition"
                   >
                     <Download className="w-4 h-4" /> Download PDF Formulir
@@ -486,14 +541,26 @@ const DashboardPetugas = () => {
 
                 <div className="space-y-3 pt-4 border-t border-slate-800">
                   <h4 className="text-xs font-bold text-slate-300">Persyaratan Dokumen:</h4>
-                  <ul className="space-y-2">
-                    {selectedService.req.map((r, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-[11px] text-slate-400">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{r}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {loadingPersyaratan ? (
+                    <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-indigo-500" /></div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {persyaratanList.map((r) => (
+                        <li key={r.id} className="flex items-start gap-2 text-[11px] text-slate-400">
+                          {r.is_wajib ? (
+                            <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          ) : (
+                            <div className="w-4 h-4 border border-slate-600 rounded-sm shrink-0 mt-0.5" />
+                          )}
+                          <span>
+                            <span className={r.is_wajib ? "font-bold text-slate-300" : ""}>{r.nama_dokumen}</span>
+                            {!r.is_wajib && <span className="text-indigo-400 ml-1">(Opsional)</span>}
+                            {r.catatan && <span className="block text-[9px] text-slate-500 italic mt-0.5">{r.catatan}</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
 
@@ -513,7 +580,7 @@ const DashboardPetugas = () => {
                   <div className="p-5 bg-slate-950/40 border border-slate-800 rounded-2xl">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h4 className="text-xs font-bold text-white">Upload Formulir Pendaftaran</h4>
+                        <h4 className="text-xs font-bold text-white">Upload Formulir Pendaftaran <span className="text-rose-500">*</span></h4>
                         <p className="text-[10px] text-slate-500 mt-0.5">Wajib formulir cetak yang diisi & ditandatangani.</p>
                       </div>
                       {formulirFile && <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold rounded-md uppercase">Terpilih</span>}
@@ -534,30 +601,41 @@ const DashboardPetugas = () => {
                   {/* Requirements upload */}
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-300">Upload Berkas Persyaratan Tambahan</h4>
-                    {selectedService.req.map((r, idx) => (
-                      <div key={idx} className="p-4 bg-slate-950/20 border border-slate-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="max-w-md">
-                          <p className="text-xs font-bold text-slate-300 leading-snug">{r}</p>
-                          <p className="text-[9px] text-slate-500 leading-relaxed mt-0.5">Upload salinan foto/scan dokumen pendukung pemohon.</p>
-                        </div>
+                    
+                    {loadingPersyaratan ? (
+                      <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>
+                    ) : (
+                      persyaratanList.map((r) => (
+                        <div key={r.id} className={`p-4 bg-slate-950/20 border border-slate-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${!r.is_wajib && !reqFiles[r.id] ? 'opacity-80' : ''}`}>
+                          <div className="max-w-md">
+                            <p className="text-xs font-bold text-slate-300 leading-snug">
+                              {r.nama_dokumen}
+                              {r.is_wajib && <span className="text-rose-500 ml-1">*</span>}
+                              {!r.is_wajib && <span className="text-indigo-400 ml-2 font-normal text-[10px] border border-indigo-500/30 px-1.5 py-0.5 rounded">Opsional</span>}
+                            </p>
+                            <p className="text-[9px] text-slate-500 leading-relaxed mt-0.5">
+                              {r.catatan ? `Catatan: ${r.catatan}` : 'Upload salinan foto/scan dokumen pendukung pemohon.'}
+                            </p>
+                          </div>
 
-                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl cursor-pointer text-[11px] font-bold text-slate-400 hover:text-white transition w-fit shrink-0">
-                          <Upload className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="max-w-[120px] truncate">{reqFiles[r] ? reqFiles[r].name : 'Pilih File'}</span>
-                          <input 
-                            type="file" 
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handleReqFileChange(r, e)} 
-                            className="hidden" 
-                          />
-                        </label>
-                      </div>
-                    ))}
+                          <label className={`flex items-center gap-2 px-4 py-2 bg-slate-950 hover:bg-slate-900 border rounded-xl cursor-pointer text-[11px] font-bold transition w-fit shrink-0 ${reqFiles[r.id] ? 'border-emerald-500/50 text-emerald-400' : 'border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'}`}>
+                            {reqFiles[r.id] ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5 text-slate-500" />}
+                            <span className="max-w-[120px] truncate">{reqFiles[r.id] ? reqFiles[r.id].name : 'Pilih File'}</span>
+                            <input 
+                              type="file" 
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handleReqFileChange(r.id, e)} 
+                              className="hidden" 
+                            />
+                          </label>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   <button 
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || loadingPersyaratan}
                     className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {submitting ? (

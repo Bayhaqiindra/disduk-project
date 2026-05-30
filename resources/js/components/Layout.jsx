@@ -107,7 +107,9 @@ const Layout = ({ children }) => {
         { name: 'Kelola Akun', path: '/admin/dashboard?tab=akun', icon: Users },
       ]
     : [
-        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { name: 'Dashboard', path: '/dashboard?tab=dashboard', icon: LayoutDashboard },
+        { name: 'Ajukan Layanan Baru', path: '/dashboard?tab=ajukan', icon: FileText },
+        { name: 'Pengajuan Saya', path: '/dashboard?tab=list', icon: FileCheck },
       ];
 
   return (
@@ -144,6 +146,10 @@ const Layout = ({ children }) => {
                 active = location.pathname + location.search === item.path;
                 // Default to overview if no tab is specified on admin dashboard
                 if (location.pathname === '/admin/dashboard' && location.search === '' && item.path.includes('tab=overview')) {
+                  active = true;
+                }
+                // Default to dashboard if no tab is specified on petugas dashboard
+                if (location.pathname === '/dashboard' && location.search === '' && item.path.includes('tab=dashboard')) {
                   active = true;
                 }
               } else {
