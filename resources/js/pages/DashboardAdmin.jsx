@@ -228,6 +228,22 @@ const DashboardAdmin = () => {
     }
   };
 
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await api.post('/admin/users', userFormData);
+      setShowCreateUserModal(false);
+      setUserFormData({ name: '', email: '', password: '', desa: '' });
+      fetchUsersList();
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Gagal membuat akun.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleOpenEditUser = (user) => {
     setSelectedUserForEdit(user);
     setEditUserFormData({
