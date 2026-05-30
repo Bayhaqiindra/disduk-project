@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ShieldCheck, LayoutDashboard, Bell, LogOut,
-  Menu, X
+  Menu, X, FileCheck, FileText, Users
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -101,7 +101,10 @@ const Layout = ({ children }) => {
   // Navigations according to roles
   const menuItems = user.role === 'admin' 
     ? [
-        { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'Dashboard', path: '/admin/dashboard?tab=overview', icon: LayoutDashboard },
+        { name: 'Verifikasi Berkas', path: '/admin/dashboard?tab=verifikasi', icon: FileCheck },
+        { name: 'Semua Pengajuan', path: '/admin/dashboard?tab=semua', icon: FileText },
+        { name: 'Kelola Akun', path: '/admin/dashboard?tab=akun', icon: Users },
       ]
     : [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -134,7 +137,19 @@ const Layout = ({ children }) => {
           <nav className="p-4 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const active = location.pathname === item.path;
+              
+              // Determine active state, considering query params for admin tabs
+              let active = false;
+              if (item.path.includes('?tab=')) {
+                active = location.pathname + location.search === item.path;
+                // Default to overview if no tab is specified on admin dashboard
+                if (location.pathname === '/admin/dashboard' && location.search === '' && item.path.includes('tab=overview')) {
+                  active = true;
+                }
+              } else {
+                active = location.pathname === item.path;
+              }
+
               return (
                 <button
                   key={item.name}

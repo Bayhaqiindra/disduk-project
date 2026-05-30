@@ -3,13 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\UserManagementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
+    protected $userService;
+
+    public function __construct(UserManagementService $userService)
+    {
+        $this->userService = $userService;
+    }
+
     /**
      * Get the authenticated user's profile.
      */
@@ -44,20 +51,7 @@ class ProfileController extends Controller
             'password' => ['nullable', 'confirmed', Password::defaults()],
         ]);
 
-        $user->name = $request->name;
-        $user->nik = $request->nik;
-        $user->phone = $request->phone;
-        $user->alamat = $request->alamat;
-        $user->is_profile_complete = true;
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
-
-        // Notifikasi ke admin bahwa petugas ini telah melengkapi profil
-        // (Implementation for NotifikasiService will be added later or we can inject it now)
+        $user = $this->userService->completeProfile($user->id, $request->all());
 
         return response()->json([
             'status' => 'success',

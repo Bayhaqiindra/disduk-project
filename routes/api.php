@@ -64,7 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin User Management
         Route::get('/admin/users', [UserManagementController::class, 'index']);
         Route::post('/admin/users', [UserManagementController::class, 'store']);
-        Route::put('/admin/users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
-        Route::put('/admin/users/{user}/toggle-active', [UserManagementController::class, 'toggleActive']);
+        Route::put('/admin/users/{user}', [UserManagementController::class, 'update']);
+        Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy']);
     });
 });

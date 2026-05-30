@@ -4,34 +4,32 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\UserManagementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
+    protected $userService;
+
+    public function __construct(UserManagementService $userService)
+    {
+        $this->userService = $userService;
+    }
+
     /**
      * List all petugas desa accounts.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::where('role', 'petugas_desa')->latest();
-
-        if ($request->filled('desa')) {
-            $query->where('desa', $request->desa);
-        }
-
+        $filters = $request->only(['desa', 'is_profile_complete']);
+        
+        // Map status_profil to is_profile_complete if needed, depending on how frontend sends it
         if ($request->filled('status_profil')) {
-            $query->where('is_profile_complete', $request->status_profil === 'lengkap');
+            $filters['is_profile_complete'] = $request->status_profil === 'lengkap';
         }
 
-        if ($request->filled('status_akun')) {
-            $query->where('is_active', $request->status_akun === 'aktif');
-        }
-
-        $users = $query->paginate(15);
+        $users = $this->userService->listPetugas($filters);
 
         return response()->json([
             'status' => 'success',
@@ -51,18 +49,7 @@ class UserManagementController extends Controller
             'desa' => 'required|string|max:255',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'petugas_desa',
-            'desa' => $request->desa,
-            'is_profile_complete' => false,
-            'is_active' => true,
-            'created_by' => $request->user()->id,
-        ]);
-
-        // Trigger notification logic here if needed (e.g. log email that account is created)
+        $user = $this->userService->createPetugasAccount($request->all(), $request->user()->id);
 
         return response()->json([
             'status' => 'success',
@@ -72,47 +59,47 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Reset a petugas desa's password.
+     * Update an existing petugas desa account.
      */
-    public function resetPassword(Request $request, User $user): JsonResponse
+    public function update(Request $request, User $user): JsonResponse
     {
         if ($user->role !== 'petugas_desa') {
-            return response()->json(['message' => 'Hanya bisa mereset password petugas desa.'], 403);
+            return response()->json(['message' => 'Hanya bisa mengedit akun petugas desa.'], 403);
         }
 
-        // Generate a random 8 character password
-        $newPassword = Str::random(8);
+        $request->validate([
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8',
+            'desa' => 'nullable|string|max:255',
+            'nik' => 'nullable|string|regex:/^\d{16}$/',
+            'phone' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string',
+        ]);
 
-        $user->password = Hash::make($newPassword);
-        $user->save();
+        $updatedUser = $this->userService->updatePetugasAccount($user->id, $request->all());
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Password berhasil direset.',
-            'data' => [
-                'new_password' => $newPassword,
-            ]
+            'message' => 'Akun petugas berhasil diperbarui.',
+            'data' => $updatedUser,
         ]);
     }
 
     /**
-     * Toggle the active status of a user account.
+     * Delete a petugas desa account.
      */
-    public function toggleActive(Request $request, User $user): JsonResponse
+    public function destroy(User $user): JsonResponse
     {
         if ($user->role !== 'petugas_desa') {
-            return response()->json(['message' => 'Hanya bisa mengelola akun petugas desa.'], 403);
+            return response()->json(['message' => 'Hanya bisa menghapus akun petugas desa.'], 403);
         }
 
-        $user->is_active = !$user->is_active;
-        $user->save();
-
-        $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        $this->userService->deletePetugasAccount($user->id);
 
         return response()->json([
             'status' => 'success',
-            'message' => "Akun petugas berhasil $status.",
-            'data' => $user,
+            'message' => "Akun petugas berhasil dihapus.",
         ]);
     }
 }

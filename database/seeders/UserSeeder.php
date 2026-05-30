@@ -17,11 +17,11 @@ class UserSeeder extends Seeder
         $admin1 = User::updateOrCreate(
             ['email' => 'admin1@disduk.id'],
             [
-                'name' => 'Siti Aminah',
+                'name' => 'Admin UPT 1',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
                 'desa' => null,
-                'phone' => '082198765432',
+                'phone' => '083124571521',
                 'is_profile_complete' => true,
                 'is_active' => true,
             ]
@@ -31,11 +31,11 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin2@disduk.id'],
             [
-                'name' => 'Ahmad Roni',
+                'name' => 'Admin UPT 2',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
                 'desa' => null,
-                'phone' => '082198765433',
+                'phone' => '082180713231',
                 'is_profile_complete' => true,
                 'is_active' => true,
             ]
